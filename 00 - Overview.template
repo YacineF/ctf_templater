@@ -1,0 +1,31 @@
+---
+creation_date: "{{ creation_date }}"
+IPaddress : {{ ip_address }}
+name: {{ machine_name }}
+---
+
+# {{ machine_name }}
+#Started #{{ OS }}
+
+## Web page
+![[{{ screenshot }}]]
+## Machine Details
+
+|IP|Hostname|Operating System|
+|---|---|---|
+|{{ ip_address }}|{{ machine_name }}|{{ OS }}|
+
+[[05 - Initial foothold]]
+[[10 - Shell]]
+[[15 - Privilege Escalation]]
+
+## Services
+{% for service in services %}
+- `{{ service["name"] }}` on `{{ service["port"] }}`
+{% endfor %}
+
+### Nmap
+#PortScan #nmap
+```bash
+{{ nmap_results }}
+```

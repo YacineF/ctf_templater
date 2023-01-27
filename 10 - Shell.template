@@ -1,0 +1,10 @@
+# Web
+#WebApplicationAttack #PasswordAttack 
+
+## Screenshots
+{% for image in screenshots%}
+image
+![[{{ image }}]]
+{% endfor %}
+## Exploit
+
