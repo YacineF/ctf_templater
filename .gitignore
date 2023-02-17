@@ -1,3 +1,5 @@
 env
 .vscode
 Pipfile*
+*.pyc
+__pycache__
