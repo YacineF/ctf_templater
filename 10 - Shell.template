@@ -1,10 +1,25 @@
-# Web
+{% for service in services -%}
+`{{ service["name"] }}` on `{{ service["port"] }}`
+{% if service["name"] == "http" %}
+## HTTP
 #WebApplicationAttack #PasswordAttack 
-
+Port : `service["port"]`
 ## Screenshots
-{% for image in screenshots%}
-image
-![[{{ image }}]]
-{% endfor %}
-## Exploit
 
+{% endif %}
+{% if service["name"] == "SSH" %}
+## SSH
+#SSH
+Port : `service["port"]`
+{% endif %}
+{% if service["name"] == "ldap" %}
+## LDAP
+#LDAP
+Port : `service["port"]`
+{% endif %}
+{% if service["name"] == "ftp" %}
+## FTP
+#FTP
+Port : `service["port"]`
+{% endif %}
+{%- endfor %}

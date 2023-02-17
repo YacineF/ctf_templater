@@ -17,6 +17,7 @@ from mytemplater import parse_nmap
 from pathlib import Path
 from logzero import logger
 
+SCAN_PATH = "/home/yacine/Documents/autorecon_scans"
 # import debugpy
 # Allow other computers to attach to debugpy at this IP address and port.
 # debugpy.listen(('127.0.0.1', 5678))
@@ -37,10 +38,10 @@ class MarkdownTemplate:
 
     def __init__(
         self,
-        ip_address,
         machine_name,
         force=False,
-        machine_location="OSCPmd/1 - Machine in progress",
+        note_path="OSCPmd/1 - Machine in progress",
+        scan_path=SCAN_PATH,
     ):
         """Constructur of the Markdown Template with basic information
 
@@ -50,16 +51,15 @@ class MarkdownTemplate:
             force (bool, optional): Flag to override the files. Defaults to False.
         """
         self.machine_name = machine_name
-        self.ip_address = ip_address
+        self.ip_address = ""
         self.config = {}
         self.force = force
         self.nmap_xml = None
         self.machines_path = (
-            Path().absolute().joinpath(machine_location).joinpath(machine_name)
+            Path().absolute().joinpath(note_path).joinpath(machine_name)
         )
         self.config = {
             "creation_date": datetime.datetime.now(),
-            "ip_address": ip_address,
             "machine_name": machine_name,
             "OS": "",
             "services": [],
@@ -197,7 +197,7 @@ def main(args):
         args.name = args.ip_address
     if args.action == "create":
         mt = MarkdownTemplate(
-            args.ip_address, args.name, force=args.force, machine_location=args.path
+            args.ip_address, args.name, force=args.force, note_path=args.path
         )
         mt.generate_all()
 
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument("action", help="Action to perform (create, modify, delete)")
     # Optional argument which requires a parameter (eg. -d test)
-    parser.add_argument("-n", "--name", action="store", dest="name")
+    parser.add_argument("name", action="store", dest="name")
     parser.add_argument(
         "-p",
         "--path",

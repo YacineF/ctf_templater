@@ -20,11 +20,19 @@ name: {{ machine_name }}
 [[15 - Privilege Escalation]]
 
 ## Services
-{% for service in services %}
-- `{{ service["name"] }}` on `{{ service["port"] }}`
-{% endfor %}
+{% for service in services -%}
+`{{ service["name"] }}` on `{{ service["port"] }}`
+{%- endfor %}
 
-### Nmap
+### Scripts
+{% for script_name, script_output in scripts.items() -%}
+#### {{ script_name }}
+```
+{{ script_output }}
+```
+{%- endfor %}
+
+### Full scan Nmap
 #PortScan #nmap
 ```bash
 {{ nmap_results }}
