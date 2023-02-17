@@ -1,9 +1,9 @@
 <h1 align="center">
-  <img alt="cgapp logo" src="https://raw.githubusercontent.com/create-go-app/cli/master/.github/images/cgapp_logo%402x.png" width="224px"/><br/>
+  <img alt="TODO" src=" width="224px"/><br/>
   CTF Templater
 </h1>
 <p align="center">
-This project allows you to quickly organize and structure your </b>CTF/Challenge</b> notes using a customizable <b>Jinjaa</b> template and b>nmap</b> XML files.</br> With just one command-line command, your notes will be dynamically generated with information gathered from your scans.</p>
+This project allows you to quickly organize and structure your </b>CTF/Challenge</b> notes using a customizable <b>Jinjaa</b> template and <b>nmap</b> XML files.</br> With just one command-line command, your notes will be dynamically generated with information gathered from your scans.</p>
 
 ## Features:
 
