@@ -13,7 +13,7 @@ import glob
 import subprocess
 import jinja2
 import datetime
-from mytemplater import parse_nmap
+import parse_nmap
 from pathlib import Path
 from logzero import logger
 
@@ -58,6 +58,7 @@ class MarkdownTemplate:
         self.machines_path = (
             Path().absolute().joinpath(note_path).joinpath(machine_name)
         )
+        self.nmap_path = Path(scan_path).joinpath(self.machine_name)
         self.config = {
             "creation_date": datetime.datetime.now(),
             "machine_name": machine_name,
@@ -79,7 +80,7 @@ class MarkdownTemplate:
         Returns:
             iter: glob paths of templates
         """
-        template_path = f"{os.getcwd()}/mytemplater"
+        template_path = os.path.abspath(os.path.dirname(__file__))
         templates = glob.glob(f"{template_path}/*.template")
         logger.info(f"Templates files found : {templates}")
         return templates
@@ -108,6 +109,7 @@ class MarkdownTemplate:
         Returns:
             str: Text generated text from Jinjaa template
         """
+        print(template_path)
         return jinja2.Environment(
             autoescape=True, loader=jinja2.FileSystemLoader(os.path.dirname(__file__))
         ).get_template(template_path)
@@ -132,7 +134,7 @@ class MarkdownTemplate:
     def generate_all(self):
         """Generate all markdown templates"""
         for template in MarkdownTemplate.templates_list():
-            self.generate_template(template.split("\\")[-1])
+            self.generate_template(Path(template).name)
 
     def generate_template(self, template_name):
         """Generate Jinjaa template with templates files
@@ -154,8 +156,7 @@ class MarkdownTemplate:
 
     def check_nmap(self):
         """Check the basic nmap file to include it in the report"""
-        nmap_path = self.machines_dir.joinpath("scans/_full_tcp_nmap.txt")
-        if nmap_path.exists():
+        if self.nmap_path.exists():
             return True
         raise NmapFileNotFound
         # self.run_autorecon()
@@ -167,16 +168,14 @@ class MarkdownTemplate:
 
     def read_nmap(self):
         """Read the basic nmap file to include it in the report"""
-        nmap_path = self.machines_dir.joinpath("scans/_full_tcp_nmap.txt")
-        with open(nmap_path, "r") as nmap_file:
+        with open(self.nmap_path.joinpath("scans/_full_tcp_nmap.txt"), "r") as nmap_file:
             self.config["nmap_results"] = nmap_file.read()
 
     def parse_nmap_xml(self):
         """Parse the XML file of nmap"""
-        nmap_path_xml = self.machines_dir.joinpath("scans/xml/_full_tcp_nmap.xml")
-        xml_parsed = parse_nmap.parse_nmap_xml(nmap_path_xml)
-        ip_addresses = xml_parsed.keys()
-        logger.info(f"{len(ip_addresses)} identified : '{ip_addresses.keys()}'")
+        xml_parsed = parse_nmap.NmapXML(self.nmap_path.joinpath("scans/xml/_full_tcp_nmap.xml")).get_information_host()
+        ip_addresses = list(xml_parsed.keys())
+        logger.info(f"{len(ip_addresses)} identified : '{ip_addresses}'")
         if len(ip_addresses) > 1:
             logger.warn(
                 "More than one ip address identified, reporting "
@@ -186,6 +185,7 @@ class MarkdownTemplate:
         self.nmap_xml = xml_parsed[self.ip_address]
         self.config["OS"] = self.nmap_xml["os"]
         self.config["services"] = self.nmap_xml["services"]
+        self.config["scripts"] = self.nmap_xml["scripts"]
         logger.debug(self.nmap_xml)
 
 
@@ -197,7 +197,7 @@ def main(args):
         args.name = args.ip_address
     if args.action == "create":
         mt = MarkdownTemplate(
-            args.ip_address, args.name, force=args.force, note_path=args.path
+           args.name, force=args.force, note_path=args.path
         )
         mt.generate_all()
 
@@ -209,7 +209,7 @@ if __name__ == "__main__":
     # Required positional argument
     parser.add_argument("action", help="Action to perform (create, modify, delete)")
     # Optional argument which requires a parameter (eg. -d test)
-    parser.add_argument("name", action="store", dest="name")
+    parser.add_argument("name", action="store")
     parser.add_argument(
         "-p",
         "--path",
