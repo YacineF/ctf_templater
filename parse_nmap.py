@@ -68,17 +68,28 @@ class NmapXML:
         self._gather_host_info()
         self.results[self.ip] = {"hostname": self.hostname, "address": self.ip}
         services = []
+        osmatchs = ["Linux"]
+        if 'Windows' in self.root:
+            osmatchs = ["Windows"]
+        
         # Host match
-        for xml_os_matches in self.host.findall(".//os/osmatch"):
-            osmatch = xml_os_matches.attrib["name"]
-            osmatchs.append(osmatch)
+        # for xml_os_matches in self.host.findall(".//os/osmatch"):
+        #     osmatch = xml_os_matches.attrib["name"]
+        #     osmatchs.append(osmatch)
         osmatchs2 = [match.attrib["name"] for match in self.host.findall(".//os/osmatch")]
         # Each services    
         all_scripts = {}
         for xml_port in self.host.findall(".//ports/port"):
             service = xml_port.find("service")
             port_number = xml_port.attrib["portid"]
-            service_name = service.attrib.get("name", "?")
+            service_name = "?"
+            if service:
+                service_name = service.attrib.get("name", "?")
+                ostype = service.attrib.get("ostype", "")
+                if ostype:
+                    osmatchs.append(ostype)
+                # self.results[self.ip]["os"] = guess_os(osmatchs)
+                
             services.append({"port": port_number, "name": service_name})
             self.results[self.ip]["os"] = guess_os(osmatchs)
             self.results[self.ip]["services"] = services
@@ -132,7 +143,7 @@ def guess_os(osmatchs):
         return os[words_os_count["Windows"] > words_os_count["Linux"]]
         
 if __name__ == "__main__":
-    n_xml = NmapXML("C:\\Users\\yacine.floret\\Documents Local\\CTF\\OSCPmd\\7 - Providing Ground\\Heist\\scans\\xml\\_full_tcp_nmap.xml")
+    n_xml = NmapXML("/home/yacine/Documents/autorecon_scans/Challenge 1 - VM4/scans/xml/_full_tcp_nmap.xml")
     res = n_xml.get_information_host()
     import pprint
     pprint.pprint(res)

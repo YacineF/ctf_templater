@@ -1,0 +1,3 @@
+SCAN_PATH = ""
+MD_PATH = ""
+USING_AUTORECON = True

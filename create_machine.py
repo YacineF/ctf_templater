@@ -4,20 +4,30 @@ Module Docstring
 """
 
 __author__ = "Yacine Floret"
-__version__ = "0.2.0"
+__version__ = "0.4.0"
 __license__ = "MIT"
 
 import argparse
 import os
 import glob
+import pprint
+import shutil
 import subprocess
+import traceback
 import jinja2
 import datetime
+from config import SCAN_PATH, MD_PATH, USING_AUTORECON
 import parse_nmap
 from pathlib import Path
 from logzero import logger
 
-SCAN_PATH = "/home/yacine/Documents/autorecon_scans"
+BANNER = f"""  ____ _____ _____   _____                    _       _            
+ / ___|_   _|  ___| |_   _|__ _ __ ___  _ __ | | __ _| |_ ___ _ __ 
+| |     | | | |_      | |/ _ \ '_ ` _ \| '_ \| |/ _` | __/ _ \ '__|
+| |___  | | |  _|     | |  __/ | | | | | |_) | | (_| | ||  __/ |   
+ \____| |_| |_|       |_|\___|_| |_| |_| .__/|_|\__,_|\__\___|_|   
+                                       |_|                      
+                                                           v{__version__}"""
 # import debugpy
 # Allow other computers to attach to debugpy at this IP address and port.
 # debugpy.listen(('127.0.0.1', 5678))
@@ -26,6 +36,8 @@ SCAN_PATH = "/home/yacine/Documents/autorecon_scans"
 # debugpy.wait_for_client()
 class NmapFileNotFound(Exception):
     pass
+
+# EMOJIS=(🥯  🦆 🦉 🥓 🦄 🦀 🖕 🍣 🍤 🍥 🍡 🥃 🥞 🤯  🤬 🤮 🤫 🤭 🧐 🐕 🦖 👾 🐉 🐓 🐋 🐌 🐢)
 
 class MarkdownTemplate:
     """Generating Markdown templates with :
@@ -39,8 +51,8 @@ class MarkdownTemplate:
     def __init__(
         self,
         machine_name,
+        note_path,
         force=False,
-        note_path="OSCPmd/1 - Machine in progress",
         scan_path=SCAN_PATH,
     ):
         """Constructur of the Markdown Template with basic information
@@ -55,8 +67,13 @@ class MarkdownTemplate:
         self.config = {}
         self.force = force
         self.nmap_xml = None
-        self.machines_path = (
-            Path().absolute().joinpath(note_path).joinpath(machine_name)
+        self.nmap_scan_file = "scan.txt"
+        self.xml_scan_file = "scan.xml"
+        if USING_AUTORECON:
+            self.xml_scan_file = "scans/xml/_full_tcp_nmap.xml"
+            self.nmap_scan_file = "scans/_full_tcp_nmap.txt"
+        self.machines_md_path = (
+            Path(MD_PATH).absolute().joinpath(note_path).joinpath(machine_name)
         )
         self.nmap_path = Path(scan_path).joinpath(self.machine_name)
         self.config = {
@@ -66,10 +83,12 @@ class MarkdownTemplate:
             "services": [],
             "name": machine_name,
         }
+        # We check and read the nmap scan files
         self.check_nmap()
         self.read_nmap()
+        # Parsing the XML file, filling information in self.config
         self.parse_nmap_xml()
-
+        # Parsing the XML file, filling information in self.config
         self.smbmap_enum()
         self.get_screenshots()
 
@@ -82,7 +101,10 @@ class MarkdownTemplate:
         """
         template_path = os.path.abspath(os.path.dirname(__file__))
         templates = glob.glob(f"{template_path}/*.template")
-        logger.info(f"Templates files found : {templates}")
+        logger.debug(f"⚓ Markdown note path : {template_path}")
+        for t in templates:
+            md_name = t.split("/")[-1]
+            logger.debug(f"🗄️ Templates files found : {md_name}")
         return templates
 
     @property
@@ -92,13 +114,11 @@ class MarkdownTemplate:
         Returns:
             str: Machine path
         """
-        if not self.machines_path.exists():
-            logger.info(f"Folder {self.machines_path} doesn't exist, creating it")
-            self.machines_path.mkdir(parents=False, exist_ok=True)
-        # else:
-        # logger.info(f"Folder {self.machines_path} already exists")
+        if not self.machines_md_path.exists():
+            logger.info(f"Folder {self.machines_md_path} doesn't exist, creating it 🧐")
+            self.machines_md_path.mkdir(parents=False, exist_ok=True)
 
-        return self.machines_path
+        return self.machines_md_path
 
     def load_template(self, template_path="00 - Overview.template"):
         """Load Jinjaa template
@@ -109,27 +129,32 @@ class MarkdownTemplate:
         Returns:
             str: Text generated text from Jinjaa template
         """
-        print(template_path)
         return jinja2.Environment(
             autoescape=True, loader=jinja2.FileSystemLoader(os.path.dirname(__file__))
         ).get_template(template_path)
 
     def get_screenshots(self):
         """Look for screenshots to include in the Web page"""
-        # print(self.machines_dir / "screenshots")
-        self.config["screenshots"] = [
-            s for s in self.machines_dir.glob("screenshots/*png")
-        ]
-        # print(self.config["screenshots"])
+        self.config["screenshots"] = {}
+        for image in Path(self.nmap_path).rglob("*png"):
+            img_name = image.name
+            port = img_name.split("_")[1]
+            logger.info("🖼️ Screenshots detected : {image}")
+            logger.info("🖼️ 📦 Copying the screenshot to the current md path")
+            logger.debug(
+                "[*] mv " + str(image) + " -> " + str(self.machines_md_path / img_name)
+            )
+            shutil.copy(image, self.machines_md_path / img_name)
+            self.config["screenshots"][port] = img_name
 
     def smbmap_enum(self):
+        smbmap_content = []
         for s in self.machines_dir.glob("scans/smbmap-*.txt"):
-            logger.info("Including SMBmap results to report")
-            logger.info(f"Found SMBMap file : {s.file}")
+            logger.info("📦 Including SMBmap results to report 📦")
+            logger.info(f"🗄️ Found SMBMap file : {s.file}")
             with open(s, "r") as smbmap_file:
-                self.config["smbmap"] = {"name": s, "content": smbmap_file.read()}
-
-        # print(self.config["smbmap"])
+                smbmap_content.append(smbmap_file.read())
+        self.config["smbmap"] = {"name": "SMBMAP", "content": "\n".join(smbmap_content)}
 
     def generate_all(self):
         """Generate all markdown templates"""
@@ -143,14 +168,15 @@ class MarkdownTemplate:
             template_name (str): filename of the Jinjaa template
 
         """
-        md_file = Path(template_name).stem + ".md"
+        prefix_num, page_name = Path(template_name).stem.split("-")
+        md_file = f"{prefix_num} - {self.machine_name} - {page_name}.md"
         md_path = self.machines_dir.joinpath(md_file)
         if Path(md_path).exists():
-            logger.debug(f"The {md_file} file already exists")
+            logger.info(f"🗄️ The {md_file} file already exists")
             if not self.force:
-                logger.info(f"Force flag is set to False, skipping...")
+                logger.info(f"Force flag is set to False, skipping... 😵‍💫")
                 return False
-        logger.info(f"Creating file {md_path}")
+        logger.info(f"🧐 Creating file {md_path}")
         with open(md_path, "w") as file:
             file.write(self.load_template(template_name).render(self.config))
 
@@ -158,7 +184,8 @@ class MarkdownTemplate:
         """Check the basic nmap file to include it in the report"""
         if self.nmap_path.exists():
             return True
-        raise NmapFileNotFound
+        logger.error(f"⚠️⚠️ Nmap path : {self.nmap_path}")
+        raise NmapFileNotFound("❌⚠️ The nmap file doesn't exist 😵‍💫")
         # self.run_autorecon()
 
     def run_autorecon(self):
@@ -168,37 +195,43 @@ class MarkdownTemplate:
 
     def read_nmap(self):
         """Read the basic nmap file to include it in the report"""
-        with open(self.nmap_path.joinpath("scans/_full_tcp_nmap.txt"), "r") as nmap_file:
+        with open(self.nmap_path.joinpath(self.nmap_scan_file), "r") as nmap_file:
             self.config["nmap_results"] = nmap_file.read()
 
     def parse_nmap_xml(self):
         """Parse the XML file of nmap"""
-        xml_parsed = parse_nmap.NmapXML(self.nmap_path.joinpath("scans/xml/_full_tcp_nmap.xml")).get_information_host()
+        xml_parsed = parse_nmap.NmapXML(
+            self.nmap_path.joinpath(self.xml_scan_file)
+        ).get_information_host()
         ip_addresses = list(xml_parsed.keys())
-        logger.info(f"{len(ip_addresses)} identified : '{ip_addresses}'")
+        logger.info(f"🔍 {len(ip_addresses)} IP addresses identified : {ip_addresses} 🔎")
         if len(ip_addresses) > 1:
             logger.warn(
-                "More than one ip address identified, reporting "
-                "multiple hosts is not implemented yet"
+                "⚠️ More than one ip address identified, reporting "
+                "multiple hosts is not implemented yet ⚠️"
             )
-        self.ip_address = ip_addresses[0]
-        self.nmap_xml = xml_parsed[self.ip_address]
-        self.config["OS"] = self.nmap_xml["os"]
-        self.config["services"] = self.nmap_xml["services"]
-        self.config["scripts"] = self.nmap_xml["scripts"]
-        logger.debug(self.nmap_xml)
+        try:
+            self.ip_address = ip_addresses[0]
+            self.nmap_xml = xml_parsed[self.ip_address]
+            self.config["OS"] = self.nmap_xml["os"]
+            self.config["services"] = self.nmap_xml["services"]
+            self.config["scripts"] = self.nmap_xml["scripts"]
+            self.config["ip_address"] = self.ip_address
+        except KeyError as e:
+            logger.error(f"❌⚠️ One information is missing in the nmap file 🤪")
+            print(traceback.format_exc())
+        # logger.debug(self.nmap_xml)
 
 
 def main(args):
     """Main entry point of the app"""
-    logger.info("Running Markdown template generation")
-    logger.info(args)
+    print(BANNER)
+    logger.info("📄 Running Markdown template generation ✔️")
+    logger.debug(f"Arguments : {args}")
     if args.name is None:
         args.name = args.ip_address
     if args.action == "create":
-        mt = MarkdownTemplate(
-           args.name, force=args.force, note_path=args.path
-        )
+        mt = MarkdownTemplate(args.name, force=args.force, note_path=args.path)
         mt.generate_all()
 
 

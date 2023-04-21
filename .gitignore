@@ -3,3 +3,4 @@ env
 Pipfile*
 *.pyc
 __pycache__
+sample.xml

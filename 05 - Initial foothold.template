@@ -3,22 +3,21 @@
 {% if service["name"] == "http" -%}
 ## HTTP
 #WebApplicationAttack #PasswordAttack 
-Port : `service["port"]`
-## Screenshots
-{%- endif %}
-{% if service["name"] == "SSH" -%}
-## SSH
-#SSH
-Port : `service["port"]`
-{%- endif %}
-{% if service["name"] == "ldap" -%}
-## LDAP
-#LDAP
-Port : `service["port"]`
+Port : `{{ service["port"] }}`
+Scripts : `{{ service["scripts"] }}`
 {%- endif %}
 {% if service["name"] == "ftp" -%}
 ## FTP
 #FTP
-Port : `service["port"]`
+Port : `{{ service["port"] }}`
 {%- endif %}
-{%- endfor %}
+{% if service["name"] == "smb" -%}
+## SMB
+#SMB
+Port : `{{ service["port"] }}`
+
+### SMBmap 
+
+{{ smbmap["content"] }}
+{%- endif %}
+{% endfor %}
